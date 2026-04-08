@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>成長判定チェッカー — 惑ふ諸島</title>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0e0e0f; --bg2: #161618; --bg3: #1e1e21;
+      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+      --text: #e8e4dc; --text2: #9a9590; --text3: #5a5753;
+      --accent: #c8a96e; --accent2: #8fa882;
+      --critical: #e8c44a; --extreme: #9b8ec4; --hard: #6e9fc8; --regular: #7ab88a; --danger: #c47070;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; font-weight: 300; min-height: 100vh; }
+    header { padding: 3rem 2rem 2rem; border-bottom: 1px solid var(--border); max-width: 960px; margin: 0 auto; }
+    .header-label { font-family: 'Shippori Mincho', serif; font-size: 11px; letter-spacing: 0.3em; color: var(--accent); text-transform: uppercase; margin-bottom: 0.75rem; }
+    h1 { font-family: 'Shippori Mincho', serif; font-size: clamp(1.4rem, 4vw, 2rem); font-weight: 500; letter-spacing: 0.05em; }
+    .subtitle { margin-top: 0.4rem; font-size: 12px; color: var(--text3); letter-spacing: 0.05em; }
+    main { max-width: 960px; margin: 0 auto; padding: 2rem; }
+    .drop-zone { border: 1px dashed var(--border2); border-radius: 8px; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; background: var(--bg2); }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: rgba(200,169,110,0.04); }
+    .drop-icon { width: 40px; height: 40px; margin: 0 auto 1rem; opacity: 0.3; }
+    .drop-icon svg { width: 100%; height: 100%; }
+    .drop-text { font-size: 14px; color: var(--text2); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+    .drop-sub { font-size: 11px; color: var(--text3); margin-bottom: 1.5rem; letter-spacing: 0.03em; }
+    .pick-btn { display: inline-block; padding: 8px 24px; border: 1px solid var(--border2); border-radius: 4px; background: transparent; color: var(--text2); font-family: 'Noto Sans JP', sans-serif; font-size: 13px; letter-spacing: 0.05em; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+    .pick-btn:hover { border-color: var(--accent); color: var(--accent); }
+    #fileInput { display: none; }
+    .file-bar { margin-top: 1rem; font-size: 12px; color: var(--text3); letter-spacing: 0.03em; min-height: 18px; }
+    .file-bar.loaded { color: var(--accent2); }
+    .exclude-note { margin-top: 0.75rem; font-size: 11px; color: var(--text3); letter-spacing: 0.03em; line-height: 1.8; }
+    .exclude-note span { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 8px; border: 1px solid var(--border); border-radius: 3px; }
+    .result-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 2rem 0 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; flex: 1; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); letter-spacing: 0.05em; }
+    .ldot { width: 8px; height: 8px; border-radius: 50%; }
+    .copy-all-btn { flex-shrink: 0; font-size: 12px; padding: 5px 18px; border-radius: 4px; border: 1px solid rgba(200,169,110,0.4); background: rgba(200,169,110,0.06); color: var(--accent); cursor: pointer; font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.05em; transition: background 0.2s, border-color 0.2s; }
+    .copy-all-btn:hover { background: rgba(200,169,110,0.12); border-color: var(--accent); }
+    .char-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.25rem; overflow: hidden; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .char-header { display: flex; align-items: center; gap: 10px; padding: 0.9rem 1.25rem; background: var(--bg3); border-bottom: 1px solid var(--border); }
+    .char-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(200,169,110,0.12); border: 1px solid rgba(200,169,110,0.25); display: flex; align-items: center; justify-content: center; font-family: 'Shippori Mincho', serif; font-size: 13px; color: var(--accent); flex-shrink: 0; }
+    .char-name { font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 500; letter-spacing: 0.05em; }
+    .count-badge { font-size: 11px; padding: 2px 10px; border-radius: 99px; background: rgba(122,184,138,0.12); border: 1px solid rgba(122,184,138,0.2); color: var(--regular); letter-spacing: 0.05em; }
+    .copy-btn { margin-left: auto; font-size: 11px; padding: 3px 14px; border-radius: 4px; border: 1px solid rgba(200,169,110,0.3); background: transparent; color: var(--accent); cursor: pointer; font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.05em; transition: background 0.2s; }
+    .copy-btn:hover { background: rgba(200,169,110,0.08); }
+    .clear-btn { font-size: 11px; padding: 3px 12px; border-radius: 4px; border: 1px solid var(--border2); background: transparent; color: var(--text3); cursor: pointer; font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.05em; transition: border-color 0.2s, color 0.2s; }
+    .clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+    .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; padding: 1rem 1.25rem; }
+    .skill-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--bg); font-size: 13px; color: var(--text); letter-spacing: 0.03em; transition: border-color 0.15s; }
+    .skill-item:hover { border-color: var(--border2); }
+    .skill-item.critical { border-left: 3px solid var(--critical); }
+    .skill-item.extreme  { border-left: 3px solid var(--extreme); }
+    .skill-item.hard     { border-left: 3px solid var(--hard); }
+    .skill-item.regular  { border-left: 3px solid var(--regular); }
+    .skill-item.cthulhu  { border-left: 3px solid var(--accent); }
+    .sdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .empty-state { text-align: center; color: var(--text3); font-size: 13px; padding: 2.5rem 0; letter-spacing: 0.05em; }
+    .reset-all-btn { font-size: 12px; padding: 5px 16px; border-radius: 4px; border: 1px solid rgba(196,112,112,0.35); background: transparent; color: var(--danger); cursor: pointer; font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.05em; transition: background 0.2s; }
+    .reset-all-btn:hover { background: rgba(196,112,112,0.08); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-label">新クトゥルフ神話TRPG — ユーティリティ</div>
+  <h1>成長判定チェッカー</h1>
+  <div class="subtitle">ココフォリア ログ（HTML）から成長可能な技能を抽出します</div>
+</header>
+
+<main>
+  <div id="resetBar" style="display:none; margin-bottom:1rem; text-align:right;">
+    <button class="reset-all-btn" onclick="resetAll()">リセット</button>
+  </div>
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="4" width="22" height="28" rx="2" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M14 20h12M20 14v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M28 8l6 6v20a2 2 0 01-2 2H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="drop-text">ログファイルをここにドロップ</div>
+    <div class="drop-sub">cocfolia で書き出した .html ファイル</div>
+    <button class="pick-btn" onclick="document.getElementById('fileInput').click()">ファイルを選択</button>
+    <input type="file" id="fileInput" accept=".html">
+  </div>
+
+  <div class="file-bar" id="fileBar"></div>
+
+  <div class="exclude-note">
+    除外対象 ▸
+    <span>能力値</span><span>幸運</span><span>正気度・正気度ロール</span><span>知識</span><span>アイデア</span><span>初期値〇〇</span><span>ボーナス・ペナルティ付き</span>
+  </div>
+
+  <div id="resultArea"></div>
+</main>
+
+<script>
+  const EXCLUDED = new Set([
+    'STR','CON','SIZ','DEX','APP','INT','POW','EDU',
+    '幸運','正気度','正気度ロール','SAN','MP','HP','DB','ビルド','移動率','MOV',
+    '知識','アイデア'
+  ]);
+
+  const ORDER = { critical: 0, extreme: 1, hard: 2, regular: 3 };
+
+  function isExcluded(name) {
+    if (EXCLUDED.has(name)) return true;
+    if (/^初期値\d+$/.test(name)) return true;
+    return false;
+  }
+
+  function parseLog(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const paras = doc.querySelectorAll('p');
+    const results = {};
+    const cthulhuGain = {};
+
+    paras.forEach(p => {
+      const spans = p.querySelectorAll('span');
+      if (spans.length < 3) return;
+      const charName = spans[1].textContent.trim();
+      const content = spans[2].textContent.trim();
+
+      // 〈クトゥルフ神話〉加算
+      const cthulhu = content.match(/〈クトゥルフ神話〉\+(\d+)/);
+      if (cthulhu) {
+        cthulhuGain[charName] = (cthulhuGain[charName] || 0) + parseInt(cthulhu[1]);
+        return;
+      }
+
+      // CC から始まるロールのみ対象（ボーナス・ペナルティなし）
+      if (!/^CC<=/.test(content)) return;
+
+      // 【技能名】あり
+      const mBracket = content.match(/^CC<=(\d+)\s*【(.+?)】/);
+      // 【】なし — CC<=数値 技能名 (1D100...) の形式
+      const mPlain   = content.match(/^CC<=(\d+)\s+([^(（【\d][^(（]*?)\s*[（(]/);
+
+      const skillName = mBracket ? mBracket[2].trim()
+                      : mPlain   ? mPlain[2].trim()
+                      : null;
+      if (!skillName) return;
+      if (isExcluded(skillName)) return;
+
+      let level = null;
+      if (content.includes('クリティカル'))          level = 'critical';
+      else if (content.includes('イクストリーム成功')) level = 'extreme';
+      else if (content.includes('ハード成功'))        level = 'hard';
+      else if (content.includes('レギュラー成功'))    level = 'regular';
+      else return;
+
+      if (!results[charName]) results[charName] = {};
+      const existing = results[charName][skillName];
+      if (!existing || ORDER[level] < ORDER[existing]) {
+        results[charName][skillName] = level;
+      }
+    });
+
+    return { skills: results, cthulhu: cthulhuGain };
+  }
+
+  function charInitial(name) { return name.charAt(0); }
+
+  function buildLines(char, parsed) {
+    const skills = parsed.skills[char] || {};
+    const cthulhu = parsed.cthulhu[char] || 0;
+    const lines = Object.entries(skills)
+      .sort((a, b) => ORDER[a[1]] - ORDER[b[1]])
+      .map(([name]) => `【${name}】`);
+    if (cthulhu > 0) lines.push(`〈クトゥルフ神話〉+${cthulhu}`);
+    return lines;
+  }
+
+  function flashBtn(btn, label) {
+    const orig = btn.textContent;
+    btn.textContent = label;
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  }
+
+  window.copyChar = function(char) {
+    const d = window._parsed;
+    if (!d) return;
+    const lines = buildLines(char, d);
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      const btn = document.getElementById('copy_' + char.replace(/[^\w]/g, '_'));
+      if (btn) flashBtn(btn, 'コピー済');
+    });
+  };
+
+  window.copyAll = function() {
+    const d = window._parsed;
+    if (!d) return;
+    const allChars = new Set([...Object.keys(d.skills), ...Object.keys(d.cthulhu)]);
+    const blocks = [];
+    for (const char of allChars) {
+      const lines = buildLines(char, d);
+      if (lines.length === 0) continue;
+      blocks.push(`■ ${char}\n` + lines.join('\n'));
+    }
+    navigator.clipboard.writeText(blocks.join('\n\n')).then(() => {
+      const btn = document.getElementById('copyAllBtn');
+      if (btn) flashBtn(btn, '全員コピー済');
+    });
+  };
+
+  function render(parsed) {
+    const area = document.getElementById('resultArea');
+    const { skills, cthulhu } = parsed;
+    const allChars = new Set([...Object.keys(skills), ...Object.keys(cthulhu)]);
+
+    if (allChars.size === 0) {
+      area.innerHTML = '<div class="empty-state">成長可能な技能が見つかりませんでした</div>';
+      return;
+    }
+
+    let html = `
+      <div class="result-header">
+        <div class="legend">
+          <div class="legend-item"><div class="ldot" style="background:var(--critical)"></div>クリティカル</div>
+          <div class="legend-item"><div class="ldot" style="background:var(--extreme)"></div>イクストリーム成功</div>
+          <div class="legend-item"><div class="ldot" style="background:var(--hard)"></div>ハード成功</div>
+          <div class="legend-item"><div class="ldot" style="background:var(--regular)"></div>レギュラー成功</div>
+        </div>
+        <button id="copyAllBtn" class="copy-all-btn" onclick="copyAll()">全員まとめてコピー</button>
+      </div>
+    `;
+
+    for (const char of allChars) {
+      const charSkills = skills[char] || {};
+      const entries = Object.entries(charSkills).sort((a, b) => ORDER[a[1]] - ORDER[b[1]]);
+      const gain = cthulhu[char] || 0;
+      const copyId = 'copy_' + char.replace(/[^\w]/g, '_');
+
+      let skillHtml = entries.map(([name, level]) => `
+        <div class="skill-item ${level}">
+          <div class="sdot" style="background:var(--${level})"></div>
+          <span>【${name}】</span>
+        </div>`).join('');
+
+      if (gain > 0) {
+        skillHtml += `
+          <div class="skill-item cthulhu">
+            <div class="sdot" style="background:var(--accent)"></div>
+            <span>〈クトゥルフ神話〉+${gain}</span>
+          </div>`;
+      }
+
+      const totalCount = entries.length + (gain > 0 ? 1 : 0);
+
+      html += `
+        <div class="char-section">
+          <div class="char-header">
+            <div class="char-avatar">${charInitial(char)}</div>
+            <div class="char-name">${char}</div>
+            <div class="count-badge">${totalCount} 項目</div>
+            <button id="${copyId}" class="copy-btn" onclick="copyChar('${char}')">コピー</button>
+            <button class="clear-btn" onclick="clearChar('${char}')">除外</button>
+          </div>
+          <div class="skill-grid">${skillHtml}</div>
+        </div>`;
+    }
+
+    area.innerHTML = html;
+    window._parsed = parsed;
+  }
+
+  window.clearChar = function(char) {
+    if (!window._parsed) return;
+    delete window._parsed.skills[char];
+    delete window._parsed.cthulhu[char];
+    render(window._parsed);
+  };
+
+  window.resetAll = function() {
+    window._parsed = null;
+    document.getElementById('resultArea').innerHTML = '';
+    document.getElementById('fileBar').textContent = '';
+    document.getElementById('fileBar').className = 'file-bar';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('resetBar').style.display = 'none';
+  };
+
+  function processFile(file) {
+    if (!file) return;
+    const bar = document.getElementById('fileBar');
+    bar.textContent = '読み込み中…';
+    bar.className = 'file-bar';
+    const reader = new FileReader();
+    reader.onload = e => {
+      const parsed = parseLog(e.target.result);
+      bar.textContent = '✓ ' + file.name;
+      bar.className = 'file-bar loaded';
+      document.getElementById('resetBar').style.display = 'block';
+      render(parsed);
+    };
+    reader.onerror = () => { bar.textContent = '読み込みに失敗しました'; bar.className = 'file-bar'; };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  document.getElementById('fileInput').addEventListener('change', e => { processFile(e.target.files[0]); });
+
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); processFile(e.dataTransfer.files[0]); });
+</script>
+
+</body>
+</html>
