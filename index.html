@@ -93,7 +93,7 @@
 
   <div class="exclude-note">
     除外対象 ▸
-    <span>能力値</span><span>幸運</span><span>正気度・正気度ロール</span><span>知識</span><span>アイデア</span><span>初期値〇〇</span><span>ボーナス・ペナルティ付き</span>
+    <span>能力値</span><span>幸運</span><span>正気度・正気度ロール</span><span>知識</span><span>アイデア</span><span>ボーナス・ペナルティ付き</span>
   </div>
 
   <div id="resultArea"></div>
@@ -109,8 +109,8 @@
   const ORDER = { critical: 0, extreme: 1, hard: 2, regular: 3 };
 
   function isExcluded(name) {
-    if (EXCLUDED.has(name)) return true;
-    if (/^初期値\d+$/.test(name)) return true;
+    const n = name.trim();
+    if (EXCLUDED.has(n)) return true;
     return false;
   }
 
@@ -127,32 +127,28 @@
       const charName = spans[1].textContent.trim();
       const content = spans[2].textContent.trim();
 
-      // 〈クトゥルフ神話〉加算
+      // クトゥルフ神話加算
       const cthulhu = content.match(/〈クトゥルフ神話〉\+(\d+)/);
       if (cthulhu) {
         cthulhuGain[charName] = (cthulhuGain[charName] || 0) + parseInt(cthulhu[1]);
         return;
       }
 
-      // CC から始まるロールのみ対象（ボーナス・ペナルティなし）
-      if (!/^CC<=/.test(content)) return;
+      // CCと<=の間に何もない行だけ対象（CC1やCC-1は除外）
+      const mBracket = content.match(/^CC<=\d+\s*【(.+?)】/);
+      const mPlain   = content.match(/^CC<=\d+\s+([^【（(\d][^（(]*?)\s*[（(]/);
 
-      // 【技能名】あり
-      const mBracket = content.match(/^CC<=(\d+)\s*【(.+?)】/);
-      // 【】なし — CC<=数値 技能名 (1D100...) の形式
-      const mPlain   = content.match(/^CC<=(\d+)\s+([^(（【\d][^(（]*?)\s*[（(]/);
-
-      const skillName = mBracket ? mBracket[2].trim()
-                      : mPlain   ? mPlain[2].trim()
+      const skillName = mBracket ? mBracket[1].trim()
+                      : mPlain   ? mPlain[1].trim()
                       : null;
       if (!skillName) return;
       if (isExcluded(skillName)) return;
 
       let level = null;
-      if (content.includes('クリティカル'))          level = 'critical';
-      else if (content.includes('イクストリーム成功')) level = 'extreme';
-      else if (content.includes('ハード成功'))        level = 'hard';
-      else if (content.includes('レギュラー成功'))    level = 'regular';
+      if      (content.includes('クリティカル'))        level = 'critical';
+      else if (content.includes('イクストリーム成功'))   level = 'extreme';
+      else if (content.includes('ハード成功'))           level = 'hard';
+      else if (content.includes('レギュラー成功'))       level = 'regular';
       else return;
 
       if (!results[charName]) results[charName] = {};
